@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Member QR Generator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(560px, 100%);
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 12px 35px rgba(0,0,0,.10);
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { margin: 0 0 22px; color: #6b7280; }
+    label { display:block; font-weight: 700; margin-bottom: 8px; }
+    .row { display:flex; gap:10px; }
+    input {
+      flex:1;
+      padding: 14px 15px;
+      border:1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 17px;
+      outline:none;
+    }
+    input:focus { border-color:#111827; box-shadow:0 0 0 3px rgba(17,24,39,.08); }
+    button {
+      border:0;
+      border-radius:10px;
+      padding: 13px 17px;
+      cursor:pointer;
+      font-size:15px;
+      font-weight:700;
+    }
+    .primary { background:#111827; color:#fff; }
+    .secondary { background:#e5e7eb; color:#111827; }
+    .result {
+      display:none;
+      margin-top:24px;
+      padding-top:22px;
+      border-top:1px solid #e5e7eb;
+    }
+    .qr-wrap { text-align:center; margin:18px 0; }
+    .qr-wrap img {
+      width:220px;
+      height:220px;
+      max-width:100%;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:8px;
+      background:#fff;
+    }
+    .linkbox {
+      background:#f9fafb;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      padding:12px;
+      word-break:break-all;
+      font-size:14px;
+      line-height:1.5;
+    }
+    .actions { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+    .error { color:#b91c1c; margin-top:10px; min-height:20px; }
+    .small { color:#6b7280; font-size:12px; margin-top:18px; }
+    @media (max-width:520px){
+      .row { flex-direction:column; }
+      .primary { width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Member QR Generator</h1>
+    <p class="sub">Enter the Member ID to generate the service link and QR Code.</p>
+
+    <label for="memberId">Member ID</label>
+    <div class="row">
+      <input id="memberId" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 14335" />
+      <button class="primary" id="generateBtn">Generate</button>
+    </div>
+    <div class="error" id="error"></div>
+
+    <section class="result" id="result">
+      <label>Generated Link</label>
+      <div class="linkbox" id="generatedLink"></div>
+      <div class="actions">
+        <button class="secondary" id="copyBtn">Copy Link</button>
+        <button class="secondary" id="openBtn">Open Link</button>
+      </div>
+
+      <div class="qr-wrap">
+        <img id="qrImage" alt="Generated QR Code" />
+      </div>
+    </section>
+
+    <div class="small">Formula matched to the Excel file: ID → Base64 → service URL.</div>
+  </main>
+
+  <script>
+    const BASE_URL = 'https://stpaulservice.com/stpaulservice/tutors/e_week_qr.php?I=';
+
+    function base64EncodeUtf8(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary);
+    }
+
+    function generate() {
+      const id = document.getElementById('memberId').value.trim();
+      const error = document.getElementById('error');
+      const result = document.getElementById('result');
+
+      error.textContent = '';
+      result.style.display = 'none';
+
+      if (!id) {
+        error.textContent = 'Please enter a Member ID.';
+        return;
+      }
+      if (!/^\d+$/.test(id)) {
+        error.textContent = 'Member ID must contain numbers only.';
+        return;
+      }
+
+      const encoded = base64EncodeUtf8(id);
+      const link = BASE_URL + encoded;
+      const qrUrl = 'https://image-charts.com/chart?chs=220x220&cht=qr&chl=' + encodeURIComponent(link);
+
+      document.getElementById('generatedLink').textContent = link;
+      document.getElementById('qrImage').src = qrUrl;
+      result.style.display = 'block';
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', generate);
+    document.getElementById('memberId').addEventListener('keydown', e => {
+      if (e.key === 'Enter') generate();
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = document.getElementById('generatedLink').textContent;
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('copyBtn');
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = old, 1200);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+    });
+
+    document.getElementById('openBtn').addEventListener('click', () => {
+      const link = document.getElementById('generatedLink').textContent;
+      if (link) window.open(link, '_blank');
+    });
+  </script>
+</body>
+</html>
